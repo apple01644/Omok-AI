@@ -21,7 +21,7 @@ namespace omokproto1
         const int BoardWidth = 15; //보드의 각 줄
         const int BoardMargin = 50; //보드 마진
         const int BoardCircleSize = 10; // 격자점 크기
-        const int BoardStoneSize = 42;
+        int BoardStoneSize = 70;
 
         readonly int[,] BoardDirection = new int[4, 2] { { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 } };
         int[,] Ai_point = new int[5, 4];
@@ -29,7 +29,8 @@ namespace omokproto1
         Rectangle BoardSize;
         BlockType[,] BoardGrid = new BlockType[BoardWidth, BoardWidth];
 
-        Graphics g;
+        BufferedGraphicsContext ctx;
+        BufferedGraphics bg;
 
         Image sprite_Blackstone;
         Image sprite_Whitestone;
@@ -38,15 +39,20 @@ namespace omokproto1
 
         bool Game_Run = false;
         BlockType Game_Turn = BlockType.BlackStone;
-
         BlockType Game_Winner = BlockType.Empty;
-
 
         BlockType Ai_stone = BlockType.WhiteStone;
         Point Ai_lastPlace = new Point(-1, -1);
         BlockType User_stone = BlockType.BlackStone;
 
         Font Game_font = new Font("Gulim", 10, FontStyle.Bold);
+        Font Overlay_font = new Font("Gulim", 50, FontStyle.Bold);
+        double[,] benefit_map = new double[BoardWidth, BoardWidth];
+        double[,] ai_benefit = new double[BoardWidth, BoardWidth];
+        double[,] user_benefit = new double[BoardWidth, BoardWidth];
+        string overlay_text = "";
+
+        StringFormat centerFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
 
         public Form1()
         {
@@ -63,9 +69,16 @@ namespace omokproto1
                 throw new System.ArgumentException("BoardWidth must be higher than 2");
             BoardSize = new Rectangle(BoardMargin, BoardMargin, omokpan.Width - BoardMargin * 2, omokpan.Height - BoardMargin * 2);
 
+            BoardStoneSize = BoardSize.Size.Width / BoardWidth;
+
             //그래픽스 생성 밑 그리기 시작
-            g = omokpan.CreateGraphics();
-            omokpan.Refresh();
+            ctx = BufferedGraphicsManager.Current;
+            ctx.MaximumBuffer = new Size(this.Width + 1, this.Height + 1);
+
+            bg = ctx.Allocate(omokpan.CreateGraphics(), new Rectangle(this.Location, this.Size));
+            bg.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+            Omokpan_Paint(null, null);
 
             //AI 평점 설정
             Ai_point[1, 0] = 1;
@@ -87,18 +100,24 @@ namespace omokproto1
             {
                 Game_Run = false;
                 start_btn.Text = "start";
+                overlay_text = "";
                 BoardGrid = new BlockType[BoardWidth, BoardWidth];
-                omokpan.Refresh();
+                Omokpan_Paint(null, null);
             }
             else
             {
                 Game_Run = true;
                 start_btn.Text = "stop";
+                overlay_text = "";
+                benefit_map = new double[BoardWidth, BoardWidth]; 
+                ai_benefit = new double[BoardWidth, BoardWidth];
+                user_benefit = new double[BoardWidth, BoardWidth];
+
 
                 BoardGrid = new BlockType[BoardWidth, BoardWidth];
                 Game_Winner = BlockType.Empty;
 
-                if (cmb_first.Text == "유저 선수")
+                if (cmb_first.Text == "User First")
                 {
                     Ai_stone = BlockType.WhiteStone;
                     User_stone = BlockType.BlackStone;
@@ -154,7 +173,7 @@ namespace omokproto1
         private void action_Place_stone(BlockType type, int x, int y)
         {
             BoardGrid[x, y] = type;
-            omokpan.Refresh();
+            Omokpan_Paint(null, null);
         }
 
         private bool action_Check_Winner()
@@ -206,10 +225,10 @@ namespace omokproto1
 
             if (winner != BlockType.Empty)
             {
-                win_lb.Text = "Winner is " + winner.ToString();
+                overlay_text = "Winner is " + winner.ToString();
                 Game_Run = false;
                 start_btn.Text = "start";
-                omokpan.Refresh();
+                Omokpan_Paint(null, null);
                 return true;
             }
             return false;
@@ -217,11 +236,12 @@ namespace omokproto1
 
         private void Omokpan_Paint(object sender, PaintEventArgs e)
         {
+            bg.Graphics.Clear(omokpan.BackColor);
             //가로선과 세로선 긋기
             for (int i = 0; i < BoardWidth; i++)
             {
                 //가로선
-                g.DrawLine(Pens.Black,
+                bg.Graphics.DrawLine(Pens.Black,
                     BoardSize.X + BoardSize.Width * i / (BoardWidth - 1),
                     BoardSize.Y,
                     BoardSize.X + BoardSize.Width * i / (BoardWidth - 1),
@@ -229,7 +249,7 @@ namespace omokproto1
                 );
 
                 //세로선
-                g.DrawLine(Pens.Black,
+                bg.Graphics.DrawLine(Pens.Black,
                     BoardSize.X,
                     BoardSize.Y + BoardSize.Height * i / (BoardWidth - 1),
                     BoardSize.X + BoardSize.Width,
@@ -246,7 +266,7 @@ namespace omokproto1
                 {
                     if ((x - BoardCenter) % 4 == 0 && (y - BoardCenter) % 4 == 0 && Math.Abs((y - BoardCenter)) == Math.Abs(x - BoardCenter))
                     {
-                        g.FillEllipse(Brushes.Black,
+                        bg.Graphics.FillEllipse(Brushes.Black,
                             BoardSize.X + BoardSize.Width * x / (BoardWidth - 1) - BoardCircleSize / 2,
                             BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1) - BoardCircleSize / 2,
                             BoardCircleSize,
@@ -256,15 +276,66 @@ namespace omokproto1
                 }
             }
 
+            double max_total_benefit = 1;
+            double max_ai_benefit = 1;
+            double max_player_benefit = 1;
+            SolidBrush debugBrush = new SolidBrush(Color.Black);
+            
+            {
+                for (int x = 0; x < BoardWidth; ++x)
+                {
+                    for (int y = 0; y < BoardWidth; ++y)
+                    {
+                        if (max_total_benefit < benefit_map[x, y])
+                            max_total_benefit = benefit_map[x, y];
+                        if (max_ai_benefit < ai_benefit[x, y] && isDebugAI.Checked)
+                            max_ai_benefit = ai_benefit[x, y];
+                        if (max_player_benefit < user_benefit[x, y] && isDebugPlayerScore.Checked)
+                            max_player_benefit = user_benefit[x, y];
+                    }
+                } 
+            }
+
             //돌 그리기
             for (int x = 0; x < BoardWidth; ++x)
             {
                 for (int y = 0; y < BoardWidth; ++y)
                 {
+                    if (isDebugTotal.Checked || isDebugPlayerScore.Checked || isDebugAI.Checked)
+                    {
+                        if (benefit_map[x, y] > 0 || ai_benefit[x, y] > 0 || user_benefit[x, y] > 0)
+                        {
+                            if (isDebugTotal.Checked)
+                                debugBrush.Color = Color.FromArgb((int)Math.Floor(benefit_map[x, y] * 255 / max_total_benefit), 0, 255, 0);
+                            else
+                            {
+                                if (isDebugAI.Checked && isDebugPlayerScore.Checked)
+                                {
+                                    debugBrush.Color = Color.FromArgb(
+                                        (int)Math.Floor(benefit_map[x, y] * 255 / max_total_benefit),
+                                        (isDebugAI.Checked && max_ai_benefit > 0) ? (int)Math.Floor(ai_benefit[x, y] * 255 / max_ai_benefit) : 0, 0,
+                                        (isDebugPlayerScore.Checked && max_player_benefit > 9) ? (int)Math.Floor(user_benefit[x, y] * 255 / max_player_benefit) : 0
+                                        );
+                                }
+                                else if (isDebugAI.Checked)
+                                {
+                                    debugBrush.Color = Color.FromArgb((int)Math.Floor(ai_benefit[x, y] * 255 / max_ai_benefit), 255, 0, 0);
+                                }
+                                else
+                                {
+                                    debugBrush.Color = Color.FromArgb((int)Math.Floor(user_benefit[x, y] * 255 / max_player_benefit), 0, 0, 255);
+                                }
+                            }
+                            bg.Graphics.FillRectangle(debugBrush, 
+                                BoardSize.X + BoardSize.Width * (x - 0.5f) / (BoardWidth - 1), BoardSize.Y + BoardSize.Height * (y - 0.5f) / (BoardWidth - 1),
+                                 BoardSize.Width / (BoardWidth - 1), BoardSize.Height / (BoardWidth - 1));
+                        }
+                    }
+
                     switch (BoardGrid[x, y])
                     {
                         case BlockType.BlackStone:
-                            g.DrawImage(sprite_Blackstone,
+                            bg.Graphics.DrawImage(sprite_Blackstone,
                                 BoardSize.X + BoardSize.Width * x / (BoardWidth - 1) - BoardStoneSize / 2,
                                 BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1) - BoardStoneSize / 2,
                                 BoardStoneSize,
@@ -272,7 +343,7 @@ namespace omokproto1
                             );
                             break;
                         case BlockType.WhiteStone:
-                            g.DrawImage(sprite_Whitestone,
+                            bg.Graphics.DrawImage(sprite_Whitestone,
                                 BoardSize.X + BoardSize.Width * x / (BoardWidth - 1) - BoardStoneSize / 2,
                                 BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1) - BoardStoneSize / 2,
                                 BoardStoneSize,
@@ -280,26 +351,43 @@ namespace omokproto1
                             );
                             break;
                     }
-                    if (x == Ai_lastPlace.X && y == Ai_lastPlace.Y)
+                    //if (x == Ai_lastPlace.X && y == Ai_lastPlace.Y)
+                    if (isDebugTotal.Checked)
                     {
-                        g.DrawString("New", Game_font, Ai_stone == BlockType.WhiteStone ? Brushes.Black : Brushes.White, BoardSize.X + BoardSize.Width * x / (BoardWidth - 1) - BoardStoneSize / 2, BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1) - BoardStoneSize / 2);
+                        if (benefit_map[x, y] > 0)
+                        {
+                            if (BoardGrid[x, y] == BlockType.BlackStone)
+                                bg.Graphics.DrawString(benefit_map[x, y].ToString(), Game_font, Brushes.White, BoardSize.X + BoardSize.Width * x / (BoardWidth - 1), BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1), centerFormat);
+                            if (BoardGrid[x, y] == BlockType.WhiteStone)
+                                bg.Graphics.DrawString(benefit_map[x, y].ToString(), Game_font, Brushes.Black, BoardSize.X + BoardSize.Width * x / (BoardWidth - 1), BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1), centerFormat);
+                            else
+                            {
+                                bg.Graphics.DrawString(benefit_map[x, y].ToString(), Game_font, Brushes.Black, 1 + BoardSize.X + BoardSize.Width * x / (BoardWidth - 1), 1 + BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1), centerFormat);
+                                bg.Graphics.DrawString(benefit_map[x, y].ToString(), Game_font, Brushes.White, BoardSize.X + BoardSize.Width * x / (BoardWidth - 1), BoardSize.Y + BoardSize.Height * y / (BoardWidth - 1), centerFormat);
+                            }
+                        }
                     }
                 }
             }
+
+            if (overlay_text.Length > 0)
+            {
+                bg.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(128, 0, 0, 0)), 0, 0, omokpan.Width, omokpan.Height);
+                bg.Graphics.DrawString(overlay_text, Overlay_font, Brushes.White, BoardSize.X + BoardSize.Width / 2, BoardSize.Y + BoardSize.Height / 2, centerFormat);
+            }
+            bg.Render();
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            double[,] ai_benefit = new double[BoardWidth, BoardWidth];
-            double[,] user_benefit = new double[BoardWidth, BoardWidth];
             for (int x = 0; x < BoardWidth; ++x)
             {
                 for (int y = 0; y < BoardWidth; ++y)
                 {
                     for (int w = 0; w < 4; ++w)
                     {
-                        int end_x = x + BoardDirection[w, 0] * 5;
-                        int end_y = y + BoardDirection[w, 1] * 5;
+                        int end_x = x + BoardDirection[w, 0] * 4;
+                        int end_y = y + BoardDirection[w, 1] * 4;
                         if (0 <= end_x && end_x < BoardWidth && 0 <= end_y && end_y < BoardWidth)
                         {
                             //User Benefit 계산
@@ -397,11 +485,16 @@ namespace omokproto1
                     if (BoardGrid[x, y] == BlockType.Empty)
                     {
                         double score = ai_benefit[x, y] + user_benefit[x, y];
+                        benefit_map[x, y] = score;
                         if (score > best_score)
                         {
                             best_score = score;
                             best_pos = new Point(x, y);
                         }
+                    }
+                    else
+                    {
+                        benefit_map[x, y] = 0;
                     }
                 }
             }
@@ -413,6 +506,21 @@ namespace omokproto1
             action_Check_Winner();
 
             timer1.Enabled = false;
+        }
+
+        private void isDebug_CheckedChanged(object sender, EventArgs e)
+        {
+            if (((CheckBox)sender).Checked) isDebugTotal.Checked = false;
+            Omokpan_Paint(null, null);
+        }
+        private void isDebugTotal_CheckedChanged(object sender, EventArgs e)
+        {
+            if (((CheckBox)sender).Checked)
+            {
+                isDebugAI.Checked = false;
+                isDebugPlayerScore.Checked = false;
+            }
+            Omokpan_Paint(null, null);
         }
     }
 }

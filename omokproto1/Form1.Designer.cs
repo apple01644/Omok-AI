@@ -29,97 +29,18 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.jiwan_rb = new System.Windows.Forms.RadioButton();
-            this.hard_rb = new System.Windows.Forms.RadioButton();
-            this.normal_rb = new System.Windows.Forms.RadioButton();
-            this.hell_rb = new System.Windows.Forms.RadioButton();
-            this.easy_rb = new System.Windows.Forms.RadioButton();
             this.start_btn = new System.Windows.Forms.Button();
             this.omokpan = new System.Windows.Forms.Panel();
-            this.win_lb = new System.Windows.Forms.Label();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.cmb_first = new System.Windows.Forms.ComboBox();
-            this.groupBox1.SuspendLayout();
+            this.isDebugTotal = new System.Windows.Forms.CheckBox();
+            this.isDebugAI = new System.Windows.Forms.CheckBox();
+            this.isDebugPlayerScore = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
-            // 
-            // groupBox1
-            // 
-            this.groupBox1.Controls.Add(this.jiwan_rb);
-            this.groupBox1.Controls.Add(this.hard_rb);
-            this.groupBox1.Controls.Add(this.normal_rb);
-            this.groupBox1.Controls.Add(this.hell_rb);
-            this.groupBox1.Controls.Add(this.easy_rb);
-            this.groupBox1.Location = new System.Drawing.Point(821, 254);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(282, 205);
-            this.groupBox1.TabIndex = 1;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "난이도 선택";
-            // 
-            // jiwan_rb
-            // 
-            this.jiwan_rb.AutoSize = true;
-            this.jiwan_rb.Font = new System.Drawing.Font("Gulim", 14F);
-            this.jiwan_rb.Location = new System.Drawing.Point(175, 120);
-            this.jiwan_rb.Name = "jiwan_rb";
-            this.jiwan_rb.Size = new System.Drawing.Size(68, 23);
-            this.jiwan_rb.TabIndex = 3;
-            this.jiwan_rb.TabStop = true;
-            this.jiwan_rb.Text = "jiwan";
-            this.jiwan_rb.UseVisualStyleBackColor = true;
-            // 
-            // hard_rb
-            // 
-            this.hard_rb.AutoSize = true;
-            this.hard_rb.Font = new System.Drawing.Font("Gulim", 14F);
-            this.hard_rb.Location = new System.Drawing.Point(73, 152);
-            this.hard_rb.Name = "hard_rb";
-            this.hard_rb.Size = new System.Drawing.Size(63, 23);
-            this.hard_rb.TabIndex = 2;
-            this.hard_rb.TabStop = true;
-            this.hard_rb.Text = "hard";
-            this.hard_rb.UseVisualStyleBackColor = true;
-            // 
-            // normal_rb
-            // 
-            this.normal_rb.AutoSize = true;
-            this.normal_rb.Font = new System.Drawing.Font("Gulim", 14F);
-            this.normal_rb.Location = new System.Drawing.Point(73, 92);
-            this.normal_rb.Name = "normal_rb";
-            this.normal_rb.Size = new System.Drawing.Size(82, 23);
-            this.normal_rb.TabIndex = 1;
-            this.normal_rb.TabStop = true;
-            this.normal_rb.Text = "normal";
-            this.normal_rb.UseVisualStyleBackColor = true;
-            // 
-            // hell_rb
-            // 
-            this.hell_rb.AutoSize = true;
-            this.hell_rb.Font = new System.Drawing.Font("Gulim", 14F);
-            this.hell_rb.Location = new System.Drawing.Point(175, 59);
-            this.hell_rb.Name = "hell_rb";
-            this.hell_rb.Size = new System.Drawing.Size(53, 23);
-            this.hell_rb.TabIndex = 1;
-            this.hell_rb.TabStop = true;
-            this.hell_rb.Text = "hell";
-            this.hell_rb.UseVisualStyleBackColor = true;
-            // 
-            // easy_rb
-            // 
-            this.easy_rb.AutoSize = true;
-            this.easy_rb.Font = new System.Drawing.Font("Gulim", 14F);
-            this.easy_rb.Location = new System.Drawing.Point(73, 37);
-            this.easy_rb.Name = "easy_rb";
-            this.easy_rb.Size = new System.Drawing.Size(67, 23);
-            this.easy_rb.TabIndex = 0;
-            this.easy_rb.TabStop = true;
-            this.easy_rb.Text = "easy";
-            this.easy_rb.UseVisualStyleBackColor = true;
             // 
             // start_btn
             // 
-            this.start_btn.Location = new System.Drawing.Point(894, 506);
+            this.start_btn.Location = new System.Drawing.Point(816, 520);
             this.start_btn.Name = "start_btn";
             this.start_btn.Size = new System.Drawing.Size(155, 50);
             this.start_btn.TabIndex = 2;
@@ -137,17 +58,6 @@
             this.omokpan.Paint += new System.Windows.Forms.PaintEventHandler(this.Omokpan_Paint);
             this.omokpan.MouseDown += new System.Windows.Forms.MouseEventHandler(this.omokpan_MouseDown_1);
             // 
-            // win_lb
-            // 
-            this.win_lb.BackColor = System.Drawing.Color.Transparent;
-            this.win_lb.Font = new System.Drawing.Font("Gulim", 15F);
-            this.win_lb.Location = new System.Drawing.Point(821, 155);
-            this.win_lb.Name = "win_lb";
-            this.win_lb.Size = new System.Drawing.Size(282, 20);
-            this.win_lb.TabIndex = 4;
-            this.win_lb.Text = "label1";
-            this.win_lb.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
             // timer1
             // 
             this.timer1.Tick += new System.EventHandler(this.Timer1_Tick);
@@ -157,44 +67,71 @@
             this.cmb_first.Font = new System.Drawing.Font("Gulim", 14F);
             this.cmb_first.FormattingEnabled = true;
             this.cmb_first.Items.AddRange(new object[] {
-            "유저 선수",
-            "AI 선수"});
-            this.cmb_first.Location = new System.Drawing.Point(894, 473);
+            "User First",
+            "AI First"});
+            this.cmb_first.Location = new System.Drawing.Point(816, 487);
             this.cmb_first.Name = "cmb_first";
             this.cmb_first.Size = new System.Drawing.Size(155, 27);
             this.cmb_first.TabIndex = 5;
-            this.cmb_first.Text = "유저 선수";
+            this.cmb_first.Text = "User First";
+            // 
+            // isDebugTotal
+            // 
+            this.isDebugTotal.Location = new System.Drawing.Point(816, 433);
+            this.isDebugTotal.Name = "isDebugTotal";
+            this.isDebugTotal.Size = new System.Drawing.Size(155, 16);
+            this.isDebugTotal.TabIndex = 6;
+            this.isDebugTotal.Text = "Debug TotalScore";
+            this.isDebugTotal.UseVisualStyleBackColor = true;
+            this.isDebugTotal.CheckedChanged += new System.EventHandler(this.isDebugTotal_CheckedChanged);
+            // 
+            // isDebugAI
+            // 
+            this.isDebugAI.Location = new System.Drawing.Point(816, 450);
+            this.isDebugAI.Name = "isDebugAI";
+            this.isDebugAI.Size = new System.Drawing.Size(155, 16);
+            this.isDebugAI.TabIndex = 7;
+            this.isDebugAI.Text = "Debug AIScore";
+            this.isDebugAI.UseVisualStyleBackColor = true;
+            this.isDebugAI.CheckedChanged += new System.EventHandler(this.isDebug_CheckedChanged);
+            // 
+            // isDebugPlayerScore
+            // 
+            this.isDebugPlayerScore.Location = new System.Drawing.Point(816, 468);
+            this.isDebugPlayerScore.Name = "isDebugPlayerScore";
+            this.isDebugPlayerScore.Size = new System.Drawing.Size(155, 16);
+            this.isDebugPlayerScore.TabIndex = 8;
+            this.isDebugPlayerScore.Text = "Debug PlayerScore";
+            this.isDebugPlayerScore.UseVisualStyleBackColor = true;
+            this.isDebugPlayerScore.CheckedChanged += new System.EventHandler(this.isDebug_CheckedChanged);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1115, 822);
+            this.ClientSize = new System.Drawing.Size(976, 822);
+            this.Controls.Add(this.isDebugPlayerScore);
+            this.Controls.Add(this.isDebugAI);
+            this.Controls.Add(this.isDebugTotal);
             this.Controls.Add(this.cmb_first);
-            this.Controls.Add(this.win_lb);
             this.Controls.Add(this.omokpan);
             this.Controls.Add(this.start_btn);
-            this.Controls.Add(this.groupBox1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Form1";
             this.Text = "omok";
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
 
         }
 
         #endregion
-        private System.Windows.Forms.GroupBox groupBox1;
-        private System.Windows.Forms.RadioButton hard_rb;
-        private System.Windows.Forms.RadioButton normal_rb;
-        private System.Windows.Forms.RadioButton hell_rb;
-        private System.Windows.Forms.RadioButton easy_rb;
-        private System.Windows.Forms.RadioButton jiwan_rb;
         private System.Windows.Forms.Button start_btn;
         private System.Windows.Forms.Panel omokpan;
-        private System.Windows.Forms.Label win_lb;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.ComboBox cmb_first;
+        private System.Windows.Forms.CheckBox isDebugTotal;
+        private System.Windows.Forms.CheckBox isDebugAI;
+        private System.Windows.Forms.CheckBox isDebugPlayerScore;
     }
 }
 
